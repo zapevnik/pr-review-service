@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: prw-db
+    environment:
+      POSTGRES_USER: prw
+      POSTGRES_PASSWORD: prw
+      POSTGRES_DB: prw
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U prw" ]
+      interval: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: prw-app
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./migrations:/app/migrations:ro
+    working_dir: /app
+    ports:
+      - "8080:8080"
+    command: [ "./pr-review-service" ]
+
+volumes:
+  db_data:
